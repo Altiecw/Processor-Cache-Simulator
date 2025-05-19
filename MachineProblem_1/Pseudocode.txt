@@ -1,0 +1,112 @@
+How this machine works
+	1. Launch program
+	2. Take input from console
+		3. Interpret what that input is
+			-Input determines what variables to use, what trace file to load
+	4. Build Cache simulator from inputs
+	5. Load trace from file, run simulation with that trace input
+	6. Output values from part 6 into console.
+ 
+ Simulator Builder Function:
+	Inputs: How this machine works
+	1. Launch program
+	2. Take input from console
+		3. Interpret what that input is
+			-Input determines what variables to use, what trace file to load
+	4. Build Cache simulator from inputs
+	5. Load trace from file, run simulation with that trace input
+	6. Output values from part 6 into console.
+ 
+ Simulator Builder Function:
+	Inputs: <BLOCKSIZE> <L1_SIZE> <L1_ASSOC> <L2_SIZE> <L2_ASSOC>
+			<REPLACEMENT_POLICY> <INCLUSION_PROPERTY> <trace_file>
+	Make instance of Cache class for L1 and l2
+			L1 = Cache(L1_size, L1_Assoc, blocksize)
+		Store these classes
+
+	Running simulation
+		Read line from trace file
+			Interpret
+				input commands into first cache
+
+ Cache Class:
+	COnstructor:
+		Inputs:
+			Size, Assoc, blocksize
+		Get set # via size, assoc, & blocksize
+		Set Inclusion Property
+
+	Replace()
+		Depending on Simulator Cahce Policy, do either LRU, FIFO, or optimal
+		return what block should be replaced
+		OPT()
+			Before doing this, interpret every input
+				Put each address into a proper bucket based on its index
+				every time an address is called, remove it from the bucket it is in
+			For every block in set at index, get the first instance of it's address tag in the bucket
+				If it's not in the list, it's not every being used again, so return it
+				Return the block with the highest index
+		
+	Update(address, add/del)
+		If Inclusive
+			if del
+				clear block at address in cache
+				if L2, make L1 clear address as well
+			if add
+				add value address to cache
+				do nothing to other cache
+		If Non-Inclusive
+			Do nothing important
+		If exclusive
+			if del, 
+				clear block
+				if l1, put block into l2
+			if add
+				put block in
+				if l1, remove block from l2
+		DO WRITE WHEN EVICTING
+
+	Write()
+		Just use write-back + write-allocate
+
+	Read()
+		check if block is in cache
+			If not
+				Check if there's an open place for the block
+					if so, put it there
+					if not
+						find the block to replace via Replace()
+							If this block is dirty, write it to the next level down in the heirarchy
+							Put block in victim cache
+						Issue Read Request to next level down in the heirarchy and put block into set
+							Update LRU/FIFO/optimal counters
+		
+	Make instance of Cache class for L1
+			L1 = Cache(L1_size, L1_Assoc, blocksize)
+
+ Cache Class:
+	COnstructor:
+		Inputs:
+			Size, Assoc, blocksize
+		Get set # via size, assoc, & blocksize
+		Set Inclusion Property
+
+	Replace()
+		Depending on Simulator Cahce Policy, do either LRU, FIFO, or optimal
+		return what block should be replaced
+
+	Write()
+		Just use write-back + write-allocate
+
+	Read()
+		check if block is in cache
+			If not
+				Check if there's an open place for the block
+					if so, put it there
+					if not
+						find the block to replace via Replace()
+							If this block is dirty, write it to the next level down in the heirarchy
+							Put block in victim cache
+						Issue Read Request to next level down in the heirarchy and put block into set
+							Update LRU/FIFO/optimal counters
+		
