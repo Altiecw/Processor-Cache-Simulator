@@ -1,6 +1,6 @@
-This is a simulator of a L1 and optional L2 cache in C++.
+This is a simulator of an L1 and optional L2 cache in C++.
 
-It reads through a trace fine containing tens of thousands of read and write commands for addresses standing in for blocks of data. The processor reads and writes based on the commands and whether or not the addresses are present within the caches.
+It reads through a trace file containing tens of thousands of read and write commands for addresses standing in for blocks of data. The processor reads and writes based on the commands and whether or not the addresses are present within the caches.
 
 The simulator can take different cache sizes, block sizes, associations, and replacement and inlcusion policies.
 
@@ -14,6 +14,6 @@ There is the non-inclusive policy (0), and the inclusive policy (1).
 
 At the end of a simulation (which may take around 10 seconds depending on your computer). The program will print out the configuration, then the final state of the caches, along with statistics on the read, writes, misses, and writebacks for each cache.
 
-Additionally, there is a test when inputting "test 1" that runs tests with vary sizes and associativity with the L1 cache only with a least recently used replacement policy and a non-inclusive policy.
+Additionally, there is a test when inputting "test 1" that runs tests with vary sizes and associativity with the L1 cache only with a least recently used replacement policy and a non-inclusive policy. This goes through sizes between 2^10 and 2^20, and associations from 2^0 to 2^3 to 2^5 to 2^15. This will take a long time due to the many tests it does, and because the simulations with the larger size and associativity take longer.
 
-This was for an assignment in a computer architecture course I was taking in 2022 when I was getting my masters from UCF. This was one of the first major C++ programs I made, after having followed some OpenGL tutorials for classes in the past 2 years and some C++ lessons before. It felt impressive how quickly I adapted to using C++, it played an important part as future courses and my first software development job used C++.
+This was for an assignment in a computer architecture course I was taking in 2022 when I was getting my master degree from UCF. This was one of the first major C++ programs I made, after having followed some OpenGL tutorials for classes in the past 2 years and some C++ lessons before. It felt impressive how quickly I adapted to using C++, it played an important part as future courses and my first software development job used C++.
