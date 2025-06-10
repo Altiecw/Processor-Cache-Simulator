@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include <iostream>
+#include <time.h>
 using namespace std;
 
 
@@ -58,6 +59,22 @@ int main()
                 sim.Output(false);
             }
         }
+        else if (input == "benchmark") {
+            // Benchmark test
+            double total_time = 0;
+            int increment = 0;
+            for (int size = 10; size <  16; size++) {
+                clock_t start = clock();
+                CacheSimulator sim(32, pow(2, size), 1, pow(2, size + 1), 2, 0, 0);
+                sim.Run("gcc_trace.txt");
+                sim.Output(false);
+                clock_t end = clock();
+                total_time += ((double)(end - start)) / CLOCKS_PER_SEC;
+                cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << endl;
+                increment++;
+            }
+            cout << "Total time: " << total_time << " seconds. Average time: " << total_time / increment << " seconds per test." << endl;
+        }
         else if (input.substr(0, 9) == "sim_cache") {
             // Try and interpret sim cache input; Don't do simulation build if inputs 
             int blocksize = stoi(s_blocksize);
@@ -73,15 +90,19 @@ int main()
                 continue;
             }
 
+            clock_t start = clock();
+
             // Build simulator
             CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
             sim.Run(trace);
             sim.Output(true);
 
+            clock_t end = clock();
+            
+            cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << endl;
         }
 
     }
-    //cout << "Thank you for using this program." << endl;
 }
 
 
