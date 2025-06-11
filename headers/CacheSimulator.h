@@ -5,8 +5,9 @@
 #include <fstream>
 #include <iostream>
 
-class CacheSimulator {
-public:
+class CacheSimulator
+{
+  public:
     int Rep;
     int Inc;
     Cache l1, l2;
@@ -16,6 +17,10 @@ public:
     int s_Offset;
     std::string Trace;
     CacheSimulator(int blocksize, int l1size, int l1assoc, int l2size, int l2assoc, int rep, int inc);
+
+    static void EvaluateTrace(std::string name);
+
+    static void GenerateTrace(std::string name, int size, int seed, float refChance);
 
     void Run(std::string trace);
 

@@ -1,14 +1,15 @@
 #ifndef CACHE_H
 #define CACHE_H
 
-#include <vector>
+#include <bitset>
 #include <queue>
 #include <string>
 #include <tuple>
-#include <bitset>
+#include <vector>
 
-class Cache {
-public:
+class Cache
+{
+  public:
     int Size;
     int Blocksize;
     int Assoc;
@@ -27,14 +28,16 @@ public:
     bool l1Only;
     std::vector<int> LRUTickers;
     std::vector<std::queue<int>> Fifo;
-    Cache* Higher;
-    Cache* Lower;
+    Cache *Higher;
+    Cache *Lower;
     std::vector<std::vector<std::string>> Table;
     std::vector<std::vector<int>> LRUage;
     std::vector<std::vector<bool>> Dirty;
     std::vector<std::vector<std::string>> OPT;
 
-    Cache() {}
+    Cache()
+    {
+    }
 
     Cache(int size, int blocksize, int assoc, int level, int rep, int inc);
 
@@ -48,7 +51,8 @@ public:
 
     void Back_Evict(std::string address);
 
-    float MissRate() {
+    float MissRate()
+    {
         return ((float)read_misses + (float)write_misses) / ((float)reads + (float)writes);
     }
 
@@ -56,23 +60,24 @@ public:
 
     void PreCompile(std::vector<std::string> trace);
 
-    void SetLower(Cache* lower) {
+    void SetLower(Cache *lower)
+    {
         Lower = lower;
     }
 
-    void SetHigher(Cache* higher) {
+    void SetHigher(Cache *higher)
+    {
         Higher = higher;
     }
 
     std::string ToTag(int index, int slot);
 
-    int Sets() {
+    int Sets()
+    {
         return Size / (Assoc * Blocksize);
     }
 
     void Update(std::string address, int change);
 };
 
-
 #endif
-
