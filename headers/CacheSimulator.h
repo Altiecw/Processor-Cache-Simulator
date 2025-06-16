@@ -20,7 +20,7 @@ class CacheSimulator
 
     static void EvaluateTrace(std::string name);
 
-    static void GenerateTrace(std::string name, int size, int seed, float refChance);
+    static void GenerateTrace(std::string name, int size, int seed, float refChance = 0.5f, float writeChance = 0.5f);
 
     void Run(std::string trace);
 

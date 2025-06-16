@@ -1,5 +1,6 @@
 #include "CacheSimulator.h"
 #include <vector>
+#include <random>
 
 CacheSimulator::CacheSimulator(int blocksize, int l1size, int l1assoc, int l2size, int l2assoc, int rep, int inc)
 {
@@ -47,7 +48,7 @@ void CacheSimulator::EvaluateTrace(std::string name)
     std::cout << "Writes: " << count_w << " (" << (double)count_w / (double)count * 100.0 << "%)\n";
 }
 
-void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float refChance)
+void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float refChance, float writeChance)
 {
     std::ofstream file("traces/" + name);
 
@@ -55,13 +56,25 @@ void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float r
         return;
     }
 
-    std::vector<int> priors;
-    std::srand(seed);
-    for (int i = 0; i < size; ++i) {
-        const char rw = rand() % 2 ? 'r' : 'w';
-        const int address = (rand() % 100 < refChance * 100.0f || priors.size() == 0) ? (rand() * 131077) % 4294967296 : priors[rand() % i];
+    std::vector<unsigned long int> priors;
+    std::random_device device;
+    std::default_random_engine generator(seed);
+    for (int i = 1; i <= size; ++i) {
+        const char rw = generator() % 100 > writeChance * 100.0f ? 'r' : 'w';
+        unsigned long int address;
+        if ((float)priors.size() / (float)(i) < 1.0 - refChance || priors.size() == 0) {
+            if (generator() % 100 > refChance * 100.0f || priors.size() == 0) {
+                address = generator();
+                priors.push_back(address);
+            }
+            else {
+                address = priors[rand() % priors.size()];
+            }
+        }
+        else {
+            address = priors[rand() % priors.size()];
+        }
         file << rw << ' ' << std::hex << address << '\n';
-        priors.push_back(address);
     }
     file.close();
     std::cout << "Created new trace file at traces/" + name + '\n';

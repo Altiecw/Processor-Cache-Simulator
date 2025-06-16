@@ -35,7 +35,7 @@ int main()
                     "<trace_file>"
                  << endl;
             cout << "gen: Generates a file to mimick a trace file:" << endl;
-            cout << "\t<string: filename> <int: size> <float: percent references to prior addresses>" << endl;
+            cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << endl;
             cout << "/end: Stops the program." << endl;
         }
         else if (input == "/end")
@@ -45,8 +45,9 @@ int main()
         else if (input.substr(0, 3) == "gen")
         {
             int size = stoi(s_l1size);
-            float chance = stof(s_l1assoc);
-            CacheSimulator::GenerateTrace(s_blocksize, size, std::time({}), chance);
+            float refChance = stof(s_l1assoc);
+            float writeChance = stof(s_l2size);
+            CacheSimulator::GenerateTrace(s_blocksize, size, std::time({}), refChance, writeChance);
         }
         else if (input.substr(0, 4) == "eval")
         {
