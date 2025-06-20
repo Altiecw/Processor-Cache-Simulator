@@ -13,51 +13,45 @@ using namespace std;
 
 int main()
 {
-    // std::cout << "Welcome to the Machine Problem 1 Simulation!" << endl;
+    std::vector<string> inputs;
     bool looping = true;
     while (looping)
     {
-        // Get and interpret input
-        string input = "";
-        // cout << "Please enter a command to initiate the simulation. Press H for help:" << endl;
+        string input;
         getline(cin, input);
-        std::istringstream stream(input);
-        string command, s_blocksize, s_l1size, s_l1assoc, s_l2size, s_l2assoc, s_rep, s_inc, trace;
-        stream >> command >> s_blocksize >> s_l1size >> s_l1assoc >> s_l2size >> s_l2assoc >> s_rep >> s_inc >> trace;
-
-        if (input == "h" || input == "H")
-        {
-            // Help Screen
-            cout << "---COMMANDS----" << endl;
-            cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:"
-                 << endl;
-            cout << "\t<BLOCKSIZE> <L1_SIZE> <L1_ASSOC> <L2_SIZE> <L2_ASSOC> <REPLACEMENT_POLICY> <INCLUSION_PROPERTY> "
-                    "<trace_file>"
-                 << endl;
-            cout << "gen: Generates a file to mimick a trace file:" << endl;
-            cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << endl;
-            cout << "/end: Stops the program." << endl;
+        std::stringstream stream(input);
+        while (getline(stream, input, ' ')) {
+            inputs.push_back(input);
         }
-        else if (input == "/end")
+
+        if (inputs[0] == "h" || inputs[0] == "H")
+        {
+            cout << "---COMMANDS----" << '\n';
+            cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:" << '\n';
+            cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: tracefile>" << '\n';
+            cout << "\tAll sizes and associations must be powers of 2." << '\n';
+            cout << "\tSetting l2 cache variables to 0 disables using the l2 cache in simulation." << '\n';
+            cout << "gen: Generates a file to mimick a trace file:" << '\n';
+            cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << '\n';
+            cout << "end: Stops the program." << '\n';
+        }
+        else if (inputs[0] == "end")
         {
             looping = false;
         }
-        else if (input.substr(0, 3) == "gen")
+        else if (inputs[0] == "gen")
         {
-            int size = stoi(s_l1size);
-            float refChance = stof(s_l1assoc);
-            float writeChance = stof(s_l2size);
-            CacheSimulator::GenerateTrace(s_blocksize, size, std::time({}), refChance, writeChance);
+            CacheSimulator::GenerateTrace(inputs[1], stoi(inputs[2]), std::time({}), stof(inputs[3]), stof(inputs[4]));
         }
-        else if (input.substr(0, 4) == "eval")
+        else if (inputs[0] == "eval")
         {
-            CacheSimulator::EvaluateTrace(s_blocksize);
+            CacheSimulator::EvaluateTrace(inputs[1]);
         }
-        else if (input == "")
+        else if (inputs[0] == "")
         {
             cout << "Please put in a command" << endl;
         }
-        else if (input == "test 1")
+        else if (inputs[0] == "test")
         {
             // RAMDOM ASSOC AND SIZE TEST
             int assoc = 1;
@@ -80,9 +74,8 @@ int main()
                 sim.Output(false);
             }
         }
-        else if (input == "benchmark")
+        else if (inputs[0] == "benchmark")
         {
-            // Benchmark test
             double total_time = 0;
             int increment = 0;
             for (int size = 10; size < 16; size++)
@@ -99,16 +92,16 @@ int main()
             cout << "Total time: " << total_time << " seconds. Average time: " << total_time / increment
                  << " seconds per test." << endl;
         }
-        else if (input.substr(0, 9) == "sim_cache")
+        else if (inputs[0] == "sim_cache")
         {
             // Try and interpret sim cache input; Don't do simulation build if inputs
-            int blocksize = stoi(s_blocksize);
-            int l1size = stoi(s_l1size);
-            int l1assoc = stoi(s_l1assoc);
-            int l2size = stoi(s_l2size);
-            int l2assoc = stoi(s_l2assoc);
-            int rep = stoi(s_rep);
-            int inc = stoi(s_inc);
+            int blocksize = stoi(inputs[1]);
+            int l1size = stoi(inputs[2]);
+            int l1assoc = stoi(inputs[3]);
+            int l2size = stoi(inputs[4]);
+            int l2assoc = stoi(inputs[5]);
+            int rep = stoi(inputs[6]);
+            int inc = stoi(inputs[7]);
 
             if (blocksize <= 0 || l1size <= 0 || l1assoc <= 0 || l2size < 0 || l2assoc < 0 || rep < 0 || inc < 0)
             {
@@ -120,12 +113,14 @@ int main()
 
             // Build simulator
             CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
-            sim.Run(trace);
+            sim.Run(inputs[8]);
             sim.Output(true);
 
             clock_t end = clock();
 
             cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << endl;
         }
+
+        inputs.clear();
     }
 }

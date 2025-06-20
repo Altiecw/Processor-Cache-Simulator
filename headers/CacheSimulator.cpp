@@ -1,6 +1,20 @@
 #include "CacheSimulator.h"
 #include <vector>
 #include <random>
+#include <unordered_map>
+
+static unsigned int TriangularDistribution(const int a, const int b, const int c, std::default_random_engine* gen) {
+    int x = (*gen)();
+
+    if (x < c) {
+        x = (x - a) / (c - a);
+    }
+    else if (x > c) {
+        x = (b - x) / (b - c + 1);
+    }
+
+    return x * 2 / (b - a);
+}
 
 CacheSimulator::CacheSimulator(int blocksize, int l1size, int l1assoc, int l2size, int l2assoc, int rep, int inc)
 {
@@ -25,25 +39,70 @@ void CacheSimulator::EvaluateTrace(std::string name)
         return;
     }
 
-    std::vector<std::string> uniques;
+    std::vector<std::string> addresses;
     std::string line;
     int count = 0;
+    int progress = 0;
     int count_r = 0;
     int count_w = 0;
+    long int distance_sum = 0;
+    std::vector<long int> distances;
+    std::unordered_map<long int, int> distance_frequency = { {0,0} };
+    long int distances_mode = 0;
+    long int distances_median;
+
+    int MaxDistance = 0;
+    double MeanDistance;
+
+
+    while (getline(source, line)) {
+        ++count;
+    }
+
+    source.clear();
+    source.seekg(0);
+
     while (getline(source, line))
     {
-        if (std::find(uniques.begin(), uniques.end(), line.substr(2, line.size() - 2)) == uniques.end()) uniques.push_back(line.substr(2, line.size() - 2));
+        auto last = std::find(addresses.rbegin(), addresses.rend(), line.substr(2, line.size() - 2));
+        if (last != addresses.rend()) {
+            // Item is in addresses
+            distances.push_back(-(addresses.rbegin() - last - 1));
+            distance_sum += distances.back();
+            if (distances.back() > MaxDistance) MaxDistance = distances.back();
+            ++distance_frequency[distances.back()];
+            if (distance_frequency[distances.back()] > distance_frequency[0]) distances_mode = distances.back();
+        }
+        addresses.push_back(line.substr(2, line.size() - 2));
         if (line.substr(0, 1) == "w") {
             ++count_w;
         }
         else {
             ++count_r;
         }
-        ++count;
+        ++progress;
+
+        //std::cout << "Progress: " << (float)progress / (float)count * 100 << "%\t\r" << std::flush;
+        printf("Progress: %f%%\r", (float)progress / (float)count * 100);
     }
+
+    
+
+    source.close();
+    std::sort(distances.begin(), distances.end());
+    std::sort(addresses.begin(), addresses.end());
+    int uniques = std::unique(addresses.begin(), addresses.end()) - addresses.begin();
+    
+    distances_median = (distances.size() % 2 == 1) ? distances[distances.size() / 2] : (distances[(distances.size() - 1) / 2] + distances[distances.size() / 2]) / 2.0;
+
     std::cout << "Trace: " + name + '\n';
     std::cout << "Size: " << count << " lines\n";
-    std::cout << "Unique Lines: " << uniques.size() << " (" << (double)uniques.size() / (double)count * 100.0 << "%)\n";
+    std::cout << "Unique Lines: " << uniques << " (" << (double)uniques / (double)count * 100.0 << "%)\n";
+    std::cout << "Distances Between Identical Addresses:" << '\n';
+    std::cout << "-Max: " << MaxDistance << '\n';
+    std::cout << "-Mode: " << distance_frequency[distances_mode] << '\n';
+    std::cout << "-Mean: " << (float)distance_sum / (float)(count-uniques) << '\n';
+    std::cout << "-Median: " << distances_median << '\n';
     std::cout << "Reads: " << count_r << " (" << (double)count_r / (double)count * 100.0 << "%)\n";
     std::cout << "Writes: " << count_w << " (" << (double)count_w / (double)count * 100.0 << "%)\n";
 }
@@ -58,7 +117,8 @@ void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float r
 
     std::vector<unsigned long int> priors;
     std::random_device device;
-    std::default_random_engine generator(seed);
+    std::default_random_engine generator;
+    generator = std::default_random_engine(seed);
     for (int i = 1; i <= size; ++i) {
         const char rw = generator() % 100 > writeChance * 100.0f ? 'r' : 'w';
         unsigned long int address;
@@ -68,11 +128,11 @@ void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float r
                 priors.push_back(address);
             }
             else {
-                address = priors[rand() % priors.size()];
+                address = priors[generator() % priors.size()];
             }
         }
         else {
-            address = priors[rand() % priors.size()];
+            address = priors[generator() % priors.size()];
         }
         file << rw << ' ' << std::hex << address << '\n';
     }
@@ -82,7 +142,6 @@ void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float r
 
 void CacheSimulator::Run(std::string trace)
 {
-    // Load file to get commands from
     Trace = trace;
     std::fstream source;
     source.open("traces/" + trace);
@@ -117,7 +176,6 @@ void CacheSimulator::Run(std::string trace)
     while (getline(source, line))
     {
         // cout << "Reading Line " + to_string(count) << endl;
-        //  Check if this is either a read or a write; Give l1 Read or write command
         if (line.substr(0, 1) == "r")
         {
             std::string Report = l1.Read(line.substr(2));
@@ -126,7 +184,7 @@ void CacheSimulator::Run(std::string trace)
         {
             std::string Report = l1.Write(line.substr(2));
         }
-        count += 1;
+        ++count;
     }
 
     source.close();
@@ -245,3 +303,4 @@ void CacheSimulator::Output(bool showsets)
                   << std::endl;
     }
 }
+
