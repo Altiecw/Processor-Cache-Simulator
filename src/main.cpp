@@ -1,5 +1,7 @@
 #include "CacheSimulator.h"
 
+#include <chrono>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -28,9 +30,10 @@ int main()
         {
             cout << "---COMMANDS----" << '\n';
             cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:" << '\n';
-            cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: tracefile>" << '\n';
+            cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: trace file> <string: output file>" << '\n';
             cout << "\tAll sizes and associations must be powers of 2." << '\n';
             cout << "\tSetting l2 cache variables to 0 disables using the l2 cache in simulation." << '\n';
+            cout << "\tOutput file will only be created if given a filename." << '\n';
             cout << "gen: Generates a file to mimick a trace file:" << '\n';
             cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << '\n';
             cout << "end: Stops the program." << '\n';
@@ -114,7 +117,13 @@ int main()
             // Build simulator
             CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
             sim.Run(inputs[8]);
-            sim.Output(true);
+            if (inputs.size() < 10) {
+                sim.Output(true, false);
+            }
+            else {
+                sim.Output(true, true, inputs[9]);
+            }
+            
 
             clock_t end = clock();
 

@@ -24,7 +24,7 @@ class CacheSimulator
 
     void Run(std::string trace);
 
-    void Output(bool showsets);
+    void Output(bool showsets, bool print = false, std::string file = "Results.txt");
 };
 
 #endif

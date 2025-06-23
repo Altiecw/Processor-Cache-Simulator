@@ -190,38 +190,57 @@ void CacheSimulator::Run(std::string trace)
     source.close();
 }
 
-void CacheSimulator::Output(bool showsets)
+void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 {
-    std::cout << "===== Simulator configuration =====" << std::endl;
-    std::cout << "BLOCKSIZE:             " + std::to_string(l1.Blocksize) << std::endl;
-    std::cout << "L1_SIZE:               " + std::to_string(l1.Size) << std::endl;
-    std::cout << "L1_ASSOC:              " + std::to_string(l1.Assoc) << std::endl;
-    std::cout << "L2_SIZE:               " + std::to_string(l2.Size) << std::endl;
-    std::cout << "L2_ASSOC:              " + std::to_string(l2.Assoc) << std::endl;
-    if (Rep == 0)
-    {
-        std::cout << "REPLACEMENT POLICY:    LRU" << std::endl;
+    std::cout << "===== Simulator configuration =====\n";
+    std::cout << "BLOCKSIZE:\t\t" << l1.Blocksize << '\n';
+    std::cout << "L1_SIZE:\t\t" << l1.Size << '\n';
+    std::cout << "L1_ASSOC:\t\t" << l1.Assoc << '\n';
+    if (!l1Only) {
+        std::cout << "L2_SIZE:\t\t" << l2.Size << '\n';
+        std::cout << "L2_ASSOC:\t\t" << l2.Assoc << '\n';
     }
-    else if (Rep == 1)
-    {
-        std::cout << "REPLACEMENT POLICY:    FIFO" << std::endl;
-    }
-    else if (Rep == 2)
-    {
-        std::cout << "REPLACEMENT POLICY:    Optimal" << std::endl;
-    }
-    if (Inc == 0)
-    {
-        std::cout << "INCLUSION PROPERTY:    non-inclusive" << std::endl;
-    }
-    else if (Inc == 1)
-    {
-        std::cout << "INCLUSION PROPERTY:    inclusive" << std::endl;
-    }
-    std::cout << "trace_file:            " + Trace << std::endl;
+
+    const std::string repPolicy = [&]() {
+        if (Rep == 0)
+        {
+            return "LRU";
+        }
+        else if (Rep == 1)
+        {
+            return "FIFO";
+        }
+        else if (Rep == 2)
+        {
+            return "Optimal";
+        }
+        else 
+        {
+            return "ERROR";
+        }
+    }();
+    std::cout << "REPLACEMENT POLICY:\t" + repPolicy << '\n';
+
+    const std::string incPolicy = [&]() {
+        if (Inc == 0)
+        {
+            return "Non-inclusive";
+        }
+        else if (Inc == 1)
+        {
+            return "Inclusive";
+        }
+        else 
+        {
+            return "ERROR";
+        }
+    }();
+    std::cout << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
+
+    std::cout << "Trace file:\t" + Trace << '\n';
     if (showsets)
     {
-        std::cout << "===== L1 contents =====" << std::endl;
+        std::cout << "===== L1 contents =====\n";
         for (int i = 0; i < l1.Sets(); i++)
         {
             std::string line = "Set\t" + std::to_string(i) + ":\t";
@@ -236,11 +255,11 @@ void CacheSimulator::Output(bool showsets)
                     line += l1.ToTag(i, j) + "     ";
                 }
             }
-            std::cout << line << std::endl;
+            std::cout << line << '\n';
         }
         if (!l1Only)
         {
-            std::cout << "===== L2 contents =====" << std::endl;
+            std::cout << "===== L2 contents =====\n";
             for (int i = 0; i < l2.Sets(); i++)
             {
                 std::string line = "Set\t" + std::to_string(i) + ":\t";
@@ -255,52 +274,123 @@ void CacheSimulator::Output(bool showsets)
                         line += l2.ToTag(i, j) + "     ";
                     }
                 }
-                std::cout << line << std::endl;
+                std::cout << line << '\n';
             }
         }
     }
-    std::cout << "===== Simulation results(raw) =====" << std::endl;
-    std::cout << "a. number of L1 reads:        " + std::to_string(l1.reads) << std::endl;
-    std::cout << "b. number of L1 read misses:  " + std::to_string(l1.read_misses) << std::endl;
-    std::cout << "c. number of L1 writes:       " + std::to_string(l1.writes) << std::endl;
-    std::cout << "d. number of L1 write misses: " + std::to_string(l1.write_misses) << std::endl;
-    std::cout << "e. L1 miss rate:              " + std::to_string(l1.MissRate()) << std::endl;
-    std::cout << "f. number of L1 writebacks:   " + std::to_string(l1.write_backs) << std::endl;
-    std::cout << "g. number of L2 reads:        " + std::to_string(l2.reads) << std::endl;
-    std::cout << "h. number of L2 read misses:  " + std::to_string(l2.read_misses) << std::endl;
-    std::cout << "i. number of L2 writes:       " + std::to_string(l2.writes) << std::endl;
-    std::cout << "j. number of L2 write misses: " + std::to_string(l2.write_misses) << std::endl;
+    std::cout << "===== Simulation results(raw) =====\n";
+    std::cout << "a. number of L1 reads:\t\t" << l1.reads << '\n';
+    std::cout << "b. number of L1 read misses:\t" << l1.read_misses << '\n';
+    std::cout << "c. number of L1 writes:\t\t" << l1.writes << '\n';
+    std::cout << "d. number of L1 write misses:\t" << l1.write_misses << '\n';
+    std::cout << "e. L1 miss rate:\t\t" << l1.MissRate() * 100 << "%\n";
+    std::cout << "f. number of L1 writebacks:\t" << l1.write_backs << '\n';
+    
     if (!l1Only)
     {
-        std::cout << "k. L2 miss rate:              " + std::to_string((float)l2.read_misses / (float)l2.reads)
-                  << std::endl;
+        std::cout << "g. number of L2 reads:\t\t" << l2.reads << '\n';
+        std::cout << "h. number of L2 read misses:\t" << l2.read_misses << '\n';
+        std::cout << "i. number of L2 writes:\t\t" << l2.writes << '\n';
+        std::cout << "j. number of L2 write misses:\t" << l2.write_misses << '\n';
+        std::cout << "k. L2 miss rate:\t\t" << l2.MissRate() * 100 << "%\n";
+        std::cout << "l. number of L2 writebacks:\t" << l2.write_backs << '\n';
+    }
+
+    if (!l1Only)
+    {
+        std::cout << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << '\n';
     }
     else
     {
-        std::cout << "k. L2 miss rate:              0" << std::endl;
+        std::cout << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << '\n';
     }
-    std::cout << "l. number of L2 writebacks:   " + std::to_string(l2.write_backs) << std::endl;
-    if (!l1Only)
-    {
-        if (Inc == 0)
-        {
-            std::cout << "m. total memory traffic:      " +
-                             std::to_string(l2.read_misses + l2.write_misses + l2.write_backs)
-                      << std::endl;
+
+    if (print) {
+        std::ofstream file(filename);
+
+        if (file.is_open()) {
+            file << "===== Simulator configuration =====" << '\n';
+            file << "BLOCKSIZE:\t\t" << l1.Blocksize << '\n';
+            file << "L1_SIZE:\t\t" << l1.Size << '\n';
+            file << "L1_ASSOC:\t\t" << l1.Assoc << '\n';
+            if (!l1Only) {
+                file << "L2_SIZE:\t\t" << l2.Size << '\n';
+                file << "L2_ASSOC:\t\t" << l2.Assoc << '\n';
+            }
+            file << "REPLACEMENT POLICY:\t" + repPolicy << '\n';
+            file << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
+
+            file << "Trace file:\t\t" + Trace << '\n';
+            if (showsets)
+            {
+                file << "===== L1 contents =====\n";
+                for (int i = 0; i < l1.Sets(); i++)
+                {
+                    std::string line = "Set\t" + std::to_string(i) + ":\t";
+                    for (int j = 0; j < l1.Assoc; j++)
+                    {
+                        if (l1.Dirty[i][j])
+                        {
+                            line += l1.ToTag(i, j) + " D   ";
+                        }
+                        else
+                        {
+                            line += l1.ToTag(i, j) + "     ";
+                        }
+                    }
+                    file << line << '\n';
+                }
+                if (!l1Only)
+                {
+                    file << "===== L2 contents =====\n";
+                    for (int i = 0; i < l2.Sets(); i++)
+                    {
+                        std::string line = "Set\t" + std::to_string(i) + ":\t";
+                        for (int j = 0; j < l2.Assoc; j++)
+                        {
+                            if (l2.Dirty[i][j])
+                            {
+                                line += l2.ToTag(i, j) + " D   ";
+                            }
+                            else
+                            {
+                                line += l2.ToTag(i, j) + "     ";
+                            }
+                        }
+                        file << line << '\n';
+                    }
+                }
+            }
+        
+            file << "===== Simulation results(raw) =====\n";
+            file << "a. number of L1 reads:\t\t" << l1.reads << '\n';
+            file << "b. number of L1 read misses:\t" << l1.read_misses << '\n';
+            file << "c. number of L1 writes:\t\t" << l1.writes << '\n';
+            file << "d. number of L1 write misses:\t" << l1.write_misses << '\n';
+            file << "e. L1 miss rate:\t\t" << l1.MissRate() * 100 << "%\n";
+            file << "f. number of L1 writebacks:\t" << l1.write_backs << '\n';
+
+            if (!l1Only)
+            {
+                file << "g. number of L2 reads:\t" << l2.reads << '\n';
+                file << "h. number of L2 read misses:\t" << l2.read_misses << '\n';
+                file << "i. number of L2 writes:\t" << l2.writes << '\n';
+                file << "j. number of L2 write misses:\t" << l2.write_misses << '\n';
+                file << "k. L2 miss rate:\t" << l2.MissRate() * 100 << "%\n";
+                file << "l. number of L2 writebacks:\t" << l2.write_backs << '\n';
+            }
+
+            if (!l1Only)
+            {
+                file << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << '\n';
+            }
+            else
+            {
+                file << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << '\n';
+            }
+            file.close();
+            std::cout << "Exported Results to " + filename + '\n';
         }
-        else if (Inc == 1)
-        {
-            std::cout << "m. total memory traffic:      " +
-                             std::to_string(l2.read_misses + l2.write_misses + l2.write_backs)
-                      << std::endl;
-        }
-        // cout << "Back Invals:                  " + to_string(l2.backInvals) << endl;
-    }
-    else
-    {
-        std::cout << "m. total memory traffic:      " +
-                         std::to_string(l1.read_misses + l1.write_misses + l1.write_backs)
-                  << std::endl;
     }
 }
 
