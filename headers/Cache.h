@@ -7,6 +7,18 @@
 #include <tuple>
 #include <vector>
 
+enum Replacement {
+    FIFO,
+    OPTIMAL,
+    LRU
+};
+
+enum Inclusion {
+    INCLUSIVE,
+    NONINCLUSIVE,
+    EXCLUSIVE
+};
+
 class Cache
 {
   public:

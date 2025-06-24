@@ -5,14 +5,15 @@
 
 class CacheSimulator
 {
+  private:
+    std::vector<Cache*> Caches;
   public:
     int Rep;
     int Inc;
-    Cache l1, l2;
-    bool l1Only = true;
     std::string Trace;
 
-    CacheSimulator(int blocksize, int l1size, int l1assoc, int l2size, int l2assoc, int rep, int inc);
+
+    CacheSimulator(int blocksize, std::vector<int> cacheData, int rep, int inc);
 
     static void EvaluateTrace(std::string name);
 

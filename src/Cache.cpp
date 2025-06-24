@@ -30,7 +30,7 @@ Cache::Cache(int size, int blocksize, int assoc, int level, int rep, int inc)
     Fifo = std::vector<std::queue<int>>(Sets());
     OPT = std::vector<std::vector<std::string>>(Sets());
 
-    for (int i = 0; i < Sets(); i++)
+    for (int i = 0; i < Sets(); ++i)
     {
         std::vector<std::string> col(Assoc);
         Table[i] = col;
@@ -51,7 +51,7 @@ std::tuple<std::string, int, int> Cache::Decode(std::string address)
     {
         // Insert enough 0s
         int fill = 8 - address.length();
-        for (int i = 0; i < fill; i++)
+        for (int i = 0; i < fill; ++i)
         {
             address.insert(0, "0");
         }
@@ -86,7 +86,7 @@ std::tuple<std::string, int, int> Cache::Decode(std::string address)
 
 std::string Cache::Read(std::string address)
 {
-    reads += 1;
+    ++reads;
     // Convert Input
     std::tuple<std::string, int, int> Decoded = Decode(address);
     std::string Tag = std::get<0>(Decoded);
@@ -95,7 +95,7 @@ std::string Cache::Read(std::string address)
 
     // See if tag is at index
     bool Hit = false;
-    for (int i = 0; i < Assoc; i++)
+    for (int i = 0; i < Assoc; ++i)
     {
         Decoded = Decode(Table[Index][i]);
         if (std::get<0>(Decoded) == Tag)
@@ -103,7 +103,7 @@ std::string Cache::Read(std::string address)
             // Item found, return it
             Hit = true;
             LRUage[Index][i] = LRUTickers[Index];
-            LRUTickers[Index] += 1;
+            ++LRUTickers[Index];
             if (Rep == 2)
             {
                 OPT[Index].erase(OPT[Index].begin());
@@ -113,11 +113,10 @@ std::string Cache::Read(std::string address)
     }
 
     // There was no hit; Time to retrieve
-    read_misses += 1;
+    ++read_misses;
     // First, find which block needs to be replaced
-    // Check if there's an open slot
     int slot = -1;
-    for (int i = 0; i < Assoc; i++)
+    for (int i = 0; i < Assoc; ++i)
     {
         if (Table[Index][i].empty())
         {
@@ -128,7 +127,6 @@ std::string Cache::Read(std::string address)
 
     if (slot < 0)
     {
-        // Find slot via replacement function
         slot = Replace(Index);
     }
 
@@ -136,22 +134,14 @@ std::string Cache::Read(std::string address)
     Evict(Table[Index][slot]);
     Update(gone, 0);
 
-    // Get block from lower cache
     std::string block;
-    if (Level == 1)
+    if (Lower)
     {
-        if (!l1Only)
-        {
-            block = (*Lower).Read(address);
-        }
-        else
-        {
-            block = address;
-        }
+        block = (*Lower).Read(address);
     }
-    else if (Level == 2)
+    else
     {
-        // Do nothing (getting from main memory)
+        // Represents getting from main memory
         block = address;
     }
     // Block was put into cache, update FIFO queue
@@ -161,7 +151,7 @@ std::string Cache::Read(std::string address)
         OPT[Index].erase(OPT[Index].begin());
     }
     LRUage[Index][slot] = LRUTickers[Index];
-    LRUTickers[Index] += 1;
+    ++LRUTickers[Index];
     Table[Index][slot] = block;
 
     return block;
@@ -169,23 +159,20 @@ std::string Cache::Read(std::string address)
 
 std::string Cache::Write(std::string address)
 {
-    /// Write to Cache at address
-    // Convert Input
-    writes += 1;
+    ++writes;
     std::tuple<std::string, int, int> Decoded = Decode(address);
     std::string Tag = std::get<0>(Decoded);
     int Index = std::get<1>(Decoded);
     int Offset = std::get<2>(Decoded);
 
     // Check if block is there
-    for (int i = 0; i < Assoc; i++)
+    for (int i = 0; i < Assoc; ++i)
     {
         Decoded = Decode(Table[Index][i]);
         if (std::get<0>(Decoded) == Tag)
         {
-            // Item found, return it and mark it as dirty
             LRUage[Index][i] = LRUTickers[Index];
-            LRUTickers[Index] += 1;
+            ++LRUTickers[Index];
             Dirty[Index][i] = true;
             if (Rep == 2)
             {
@@ -194,12 +181,10 @@ std::string Cache::Write(std::string address)
             return address;
         }
     }
-    // There was no hit; Time to retrieve
-    write_misses += 1;
-    // First, find which block needs to be replaced
-    // Check if there's an open slot
+
+    ++write_misses;
     int slot = -1;
-    for (int i = 0; i < Assoc; i++)
+    for (int i = 0; i < Assoc; ++i)
     {
         if (Table[Index][i].empty())
         {
@@ -210,7 +195,6 @@ std::string Cache::Write(std::string address)
 
     if (slot < 0)
     {
-        // Find slot via replacement function
         slot = Replace(Index);
     }
 
@@ -220,19 +204,11 @@ std::string Cache::Write(std::string address)
 
     // Get block from lower cache
     std::string block;
-    if (Level == 1)
+    if (Lower)
     {
-        if (!l1Only)
-        {
-            block = (*Lower).Read(address);
-        }
-        else
-        {
-            // Do nothing (getting from main memory)
-            block = address;
-        }
+        block = (*Lower).Read(address);
     }
-    else if (Level == 2)
+    else
     {
         // Do nothing (getting from main memory)
         block = address;
@@ -245,7 +221,7 @@ std::string Cache::Write(std::string address)
         OPT[Index].erase(OPT[Index].begin());
     }
     LRUage[Index][slot] = LRUTickers[Index];
-    LRUTickers[Index] += 1;
+    ++LRUTickers[Index];
     Table[Index][slot] = block;
     Dirty[Index][slot] = true;
     return block;
@@ -260,18 +236,17 @@ void Cache::Evict(std::string address)
     int Offset = std::get<2>(Decoded);
 
     // Check if block is there
-    for (int i = 0; i < Assoc; i++)
+    for (int i = 0; i < Assoc; ++i)
     {
         Decoded = Decode(Table[Index][i]);
         if (std::get<0>(Decoded) == Tag)
         {
             // Item found, evict it
-            // if block is written to, write it to the next level
+            // if block is written to, write it to lower level if it exists
             if (Dirty[Index][i])
             {
-                // DO NOTHING (writing to main memory)
-                write_backs += 1;
-                if (Level < 2 && !l1Only)
+                ++write_backs;
+                if (Lower)
                 {
                     (*Lower).Write(Table[Index][i]);
                 }
@@ -332,7 +307,7 @@ int Cache::Replace(int Index)
     {
         // LRU
         int smallest = 0;
-        for (int i = 0; i < Assoc; i++)
+        for (int i = 0; i < Assoc; ++i)
         {
             if (LRUage[Index][i] < LRUage[Index][smallest])
             {
@@ -341,7 +316,7 @@ int Cache::Replace(int Index)
         }
 
         // Reduce Ticker and all ages in set
-        for (int i = 0; i < Assoc; i++)
+        for (int i = 0; i < Assoc; ++i)
         {
             LRUage[Index][i] -= smallest;
         }
@@ -363,7 +338,7 @@ int Cache::Replace(int Index)
         std::vector<std::string>::iterator it;
         int largest = 0;
         int largest_i = 0;
-        for (int i = 0; i < Assoc; i++)
+        for (int i = 0; i < Assoc; ++i)
         {
             std::tuple<std::string, int, int> Decoded = Decode(Table[Index][i]);
             it = std::find(OPT[Index].begin(), OPT[Index].end(), std::get<0>(Decoded));
@@ -384,10 +359,10 @@ int Cache::Replace(int Index)
     }
 }
 
+// Pre-compiles trace for OPT
 void Cache::PreCompile(std::vector<std::string> trace)
 {
-    /// Pre-compile trace for OPT
-    for (int i = 0; i < trace.size(); i++)
+    for (int i = 0; i < trace.size(); ++i)
     {
         std::tuple<std::string, int, int> Decoded = Decode(trace[i]);
         std::string Tag = std::get<0>(Decoded);
@@ -421,21 +396,17 @@ void Cache::Update(std::string address, int change)
 {
     // Affect either higher or lower cache depending on Replacement policy
     // Change: 0 = deleting address, 1 = inserting address
-    if (Inc == 0)
-    {
-        // Non-Inclusive; Do nothing since reads in l1 automatically require l2 to have same address
-    }
-    else if (Inc == 1)
+    if (Inc == 1)
     {
         // Inclusive
         if (change == 0)
         {
             // if at l2, remove address from l1 as well
-            if (Level == 2)
+            if (Higher)
             {
                 (*Higher).Back_Evict(address);
                 (*Higher).Update(address, 0);
-                backInvals += 1;
+                ++backInvals;
             }
         }
     }

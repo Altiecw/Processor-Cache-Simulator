@@ -25,13 +25,14 @@ int main()
         if (inputs[0] == "h" || inputs[0] == "H")
         {
             std::cout << "---COMMANDS----" << '\n';
-            std::cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:" << '\n';
-            std::cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: trace file> <string: output file>" << '\n';
-            std::cout << "\tAll sizes and associations must be powers of 2." << '\n';
-            std::cout << "\tSetting l2 cache variables to 0 disables using the l2 cache in simulation." << '\n';
-            std::cout << "\tOutput file will only be created if given a filename." << '\n';
-            std::cout << "gen: Generates a file to mimick a trace file:" << '\n';
-            std::cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << '\n';
+            std::cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:\n";
+            std::cout << "\t<int: blocksize> <int: L1 size> <int: L1 Association> ... <int: Ln size> <int: Ln Association> <string: Replacement Policy> <string: Inclusion Property > <string: trace file> <string: output file>\n";
+            std::cout << "\tAll sizes and associations must be powers of 2.\n";
+            std::cout << "\tSupported Replacement Policies: LRU (Least Recently Used), FIFO (First In First Out), & OPT (Optimal)\n";
+            std::cout << "\tSupported Inclusion Properties: Inclusive & Non-Inclusive\n";
+            std::cout << "\tOutput file will only be created if given a filename.\n";
+            std::cout << "gen: Generates a file to mimick a trace file:\n";
+            std::cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>\n";
             std::cout << "end: Stops the program." << std::endl;
         }
         else if (inputs[0] == "end")
@@ -59,7 +60,7 @@ int main()
                 for (int size = 10; size < 21; size++)
                 {
                     std::cout << "SIZE: " << pow(2, size) << " ASSOC: " + assoc << std::endl;
-                    CacheSimulator sim(32, pow(2, size), assoc, 0, 0, 0, 0);
+                    CacheSimulator sim(32, std::vector<int>{(int)pow(2, size), assoc}, 0, 0);
                     sim.Run("gcc_trace.txt");
                     sim.Output(false);
                 }
@@ -68,7 +69,7 @@ int main()
             for (int size = 10; size < 21; size++)
             {
                 std::cout << "SIZE: " << pow(2, size) << " ASSOC: " << pow(2, size) / 32 << std::endl;
-                CacheSimulator sim(32, pow(2, size), pow(2, size) / 32, 0, 0, 0, 0);
+                CacheSimulator sim(32, std::vector<int>{(int)pow(2, size), (int)pow(2, size) / 32}, 0, 0);
                 sim.Run("gcc_trace.txt");
                 sim.Output(false);
             }
@@ -80,7 +81,7 @@ int main()
             for (int size = 10; size < 16; size++)
             {
                 clock_t start = clock();
-                CacheSimulator sim(32, pow(2, size), 1, pow(2, size + 1), 2, 0, 0);
+                CacheSimulator sim(32, std::vector<int>{(int)pow(2, size), 1, (int)pow(2, size + 1), 2}, 0, 0);
                 sim.Run("gcc_trace.txt");
                 sim.Output(false);
                 clock_t end = clock();
@@ -92,29 +93,66 @@ int main()
         }
         else if (inputs[0] == "sim_cache")
         {
-            // Try and interpret sim cache input; Don't do simulation build if inputs
             int blocksize = stoi(inputs[1]);
-            int l1size = stoi(inputs[2]);
-            int l1assoc = stoi(inputs[3]);
-            int l2size = stoi(inputs[4]);
-            int l2assoc = stoi(inputs[5]);
-            int rep = stoi(inputs[6]);
-            int inc = stoi(inputs[7]);
 
-            if (blocksize <= 0 || l1size <= 0 || l1assoc <= 0 || l2size < 0 || l2assoc < 0 || rep < 0 || inc < 0)
-            {
-                std::cout << "All inputs must be a positive integer" << std::endl;
-                continue;
+            std::vector<int> cacheData;
+            int postCacheData = 0;
+            for (int i = 2; i < inputs.size(); ++i) {
+                char* p;
+                const long number = std::strtol(inputs[i].c_str(), &p, 10);
+
+                if (*p != 0) {
+                    postCacheData = i;
+                    break;
+                }
+
+                cacheData.push_back(number);
             }
 
-            CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
-            sim.Run(inputs[8]);
+            const int repPolicy = [&]() {
+                if (inputs[postCacheData] == "LRU")
+                {
+                    return 0;
+                }
+                else if (inputs[postCacheData] == "FIFO")
+                {
+                    return 1;
+                }
+                else if (inputs[postCacheData] == "Optimal")
+                {
+                    return 2;
+                }
+                else
+                {
+                    return -1;
+                }
+             }();
 
-            if (inputs.size() < 10) {
+            const int incPolicy = [&]() {
+                if (inputs[postCacheData + 1] == "Non-inclusive")
+                {
+                    return 0;
+                }
+                else if (inputs[postCacheData + 1] == "Inclusive")
+                {
+                    return 1;
+                }
+                else
+                {
+                    return -1;
+                }
+             }();
+
+            CacheSimulator sim(blocksize, cacheData, repPolicy, incPolicy);
+            
+            //CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
+            sim.Run(inputs[postCacheData + 2]);
+
+            if (inputs.size() < postCacheData + 4) {
                 sim.Output(true, false);
             }
             else {
-                sim.Output(true, true, inputs[9]);
+                sim.Output(true, true, inputs[postCacheData + 3]);
             }
         }
 

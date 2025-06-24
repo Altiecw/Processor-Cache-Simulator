@@ -22,17 +22,18 @@ static unsigned int TriangularDistribution(const int a, const int b, const int c
     return x * 2 / (b - a);
 }
 
-CacheSimulator::CacheSimulator(int blocksize, int l1size, int l1assoc, int l2size, int l2assoc, int rep, int inc)
-{
-    l1 = Cache(l1size, blocksize, l1assoc, 1, rep, inc);
-    if (l2size > 0)
-    {
-        l2 = Cache(l2size, blocksize, l2assoc, 2, rep, inc);
-        l1.SetLower(&l2);
-        l2.SetHigher(&l1);
-        l1Only = false;
+CacheSimulator::CacheSimulator(int blocksize, std::vector<int> cacheData, int rep, int inc) {
+    
+    for (int i = 0; i < cacheData.size(); i += 2) {
+        Caches.push_back(new Cache(cacheData[i], blocksize, cacheData[i+1], i / 2 + 1, rep, inc));
     }
-    l1.l1Only = l1Only;
+
+    for (int i = 0; i < Caches.size(); ++i) {
+        if (i > 0) Caches[i]->SetHigher(Caches[i - 1]);
+        if (i < Caches.size() - 1) Caches[i]->SetLower(Caches[i + 1]);
+    }
+
+    Caches[0]->l1Only = Caches.size() == 1;
 
     Rep = rep;
     Inc = inc;
@@ -169,10 +170,8 @@ void CacheSimulator::Run(std::string trace)
             trace.push_back(s.substr(2));
         }
 
-        l1.PreCompile(trace);
-        if (!l1Only)
-        {
-            l2.PreCompile(trace);
+        for (Cache* cache : Caches) {
+            (*cache).PreCompile(trace);
         }
     }
     source.close();
@@ -185,11 +184,13 @@ void CacheSimulator::Run(std::string trace)
     {
         if (line.substr(0, 1) == "r")
         {
-            std::string Report = l1.Read(line.substr(2));
+            //std::string Report = l1.Read(line.substr(2));
+            Caches[0]->Read(line.substr(2));
         }
         else if (line.substr(0, 1) == "w")
         {
-            std::string Report = l1.Write(line.substr(2));
+            //std::string Report = l1.Write(line.substr(2));
+            Caches[0]->Write(line.substr(2));
         }
         ++count;
     }
@@ -202,12 +203,10 @@ void CacheSimulator::Run(std::string trace)
 void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 {
     std::cout << "===== Simulator configuration =====\n";
-    std::cout << "BLOCKSIZE:\t\t" << l1.Blocksize << '\n';
-    std::cout << "L1_SIZE:\t\t" << l1.Size << '\n';
-    std::cout << "L1_ASSOC:\t\t" << l1.Assoc << '\n';
-    if (!l1Only) {
-        std::cout << "L2_SIZE:\t\t" << l2.Size << '\n';
-        std::cout << "L2_ASSOC:\t\t" << l2.Assoc << '\n';
+    std::cout << "BLOCKSIZE:\t\t" << (*Caches[0]).Blocksize << '\n';
+    for (Cache* cache : Caches) {
+        std::cout << "L"<< (*cache).Level << "_SIZE:\t\t" << (*cache).Size << '\n';
+        std::cout << "L" << (*cache).Level << "_ASSOC:\t\t" << (*cache).Assoc << '\n';
     }
 
     const std::string repPolicy = [&]() {
@@ -223,11 +222,11 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
         {
             return "Optimal";
         }
-        else 
+        else
         {
             return "ERROR";
         }
-    }();
+        }();
     std::cout << "REPLACEMENT POLICY:\t" + repPolicy << '\n';
 
     const std::string incPolicy = [&]() {
@@ -239,16 +238,16 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
         {
             return "Inclusive";
         }
-        else 
+        else
         {
             return "ERROR";
         }
-    }();
+        }();
     std::cout << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
 
     std::cout << "Trace file:\t\t" + Trace << '\n';
 
-    time_t begin_t= std::chrono::system_clock::to_time_t(begin); 
+    time_t begin_t = std::chrono::system_clock::to_time_t(begin);
     time_t end_t = std::chrono::system_clock::to_time_t(end);
 
     char str_begin[26];
@@ -263,69 +262,37 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 
     if (showsets)
     {
-        std::cout << "===== L1 contents =====\n";
-        for (int i = 0; i < l1.Sets(); i++)
-        {
-            std::string line = "Set\t" + std::to_string(i) + ":\t";
-            for (int j = 0; j < l1.Assoc; j++)
-            {
-                if (l1.Dirty[i][j])
-                {
-                    line += l1.ToTag(i, j) + " D   ";
-                }
-                else
-                {
-                    line += l1.ToTag(i, j) + "     ";
-                }
-            }
-            std::cout << line << '\n';
-        }
-        if (!l1Only)
-        {
-            std::cout << "===== L2 contents =====\n";
-            for (int i = 0; i < l2.Sets(); i++)
+        for (Cache* cache : Caches) {
+            std::cout << "===== L" << (*cache).Level << " contents =====\n";
+            for (int i = 0; i < (*cache).Sets(); ++i)
             {
                 std::string line = "Set\t" + std::to_string(i) + ":\t";
-                for (int j = 0; j < l2.Assoc; j++)
+                for (int j = 0; j < (*cache).Assoc; ++j)
                 {
-                    if (l2.Dirty[i][j])
+                    if ((*cache).Dirty[i][j])
                     {
-                        line += l2.ToTag(i, j) + " D   ";
+                        line += (*cache).ToTag(i, j) + " D\t";
                     }
                     else
                     {
-                        line += l2.ToTag(i, j) + "     ";
+                        line += (*cache).ToTag(i, j) + "\t\t";
                     }
                 }
                 std::cout << line << '\n';
             }
         }
     }
-    std::cout << "===== Simulation results(raw) =====\n";
-    std::cout << "a. number of L1 reads:\t\t" << l1.reads << '\n';
-    std::cout << "b. number of L1 read misses:\t" << l1.read_misses << '\n';
-    std::cout << "c. number of L1 writes:\t\t" << l1.writes << '\n';
-    std::cout << "d. number of L1 write misses:\t" << l1.write_misses << '\n';
-    std::cout << "e. L1 miss rate:\t\t" << l1.MissRate() * 100 << "%\n";
-    std::cout << "f. number of L1 writebacks:\t" << l1.write_backs << '\n';
-    
-    if (!l1Only)
-    {
-        std::cout << "g. number of L2 reads:\t\t" << l2.reads << '\n';
-        std::cout << "h. number of L2 read misses:\t" << l2.read_misses << '\n';
-        std::cout << "i. number of L2 writes:\t\t" << l2.writes << '\n';
-        std::cout << "j. number of L2 write misses:\t" << l2.write_misses << '\n';
-        std::cout << "k. L2 miss rate:\t\t" << l2.MissRate() * 100 << "%\n";
-        std::cout << "l. number of L2 writebacks:\t" << l2.write_backs << '\n';
-    }
 
-    if (!l1Only)
-    {
-        std::cout << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << std::endl;
-    }
-    else
-    {
-        std::cout << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << std::endl;
+    std::cout << "===== Simulation results(raw) =====\n";
+    for (Cache* cache : Caches) {
+        std::cout << 'L' << (*cache).Level << " Cache:\n";
+        std::cout << "\tReads:\t\t\t" << (*cache).reads << '\n';
+        std::cout << "\tRead misses:\t\t" << (*cache).read_misses << '\n';
+        std::cout << "\tWrites:\t\t\t" << (*cache).writes << '\n';
+        std::cout << "\tWrite misses:\t\t" << (*cache).write_misses << '\n';
+        std::cout << "\tMiss rate:\t\t" << (*cache).MissRate() * 100 << "%\n";
+        std::cout << "\tWritebacks:\t\t" << (*cache).write_backs << '\n';
+        std::cout << "\tTotal memory traffic:\t" << (*cache).read_misses + (*cache).write_misses + (*cache).write_backs << std::endl;
     }
 
     if (print) {
@@ -333,12 +300,10 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 
         if (file.is_open()) {
             file << "===== Simulator configuration =====" << '\n';
-            file << "BLOCKSIZE:\t\t" << l1.Blocksize << '\n';
-            file << "L1_SIZE:\t\t" << l1.Size << '\n';
-            file << "L1_ASSOC:\t\t" << l1.Assoc << '\n';
-            if (!l1Only) {
-                file << "L2_SIZE:\t\t" << l2.Size << '\n';
-                file << "L2_ASSOC:\t\t" << l2.Assoc << '\n';
+            file << "BLOCKSIZE:\t\t" << (*Caches[0]).Blocksize << '\n';
+            for (Cache* cache : Caches) {
+                file << "L" << (*cache).Level << "_SIZE:\t\t" << (*cache).Size << '\n';
+                file << "L" << (*cache).Level << "_ASSOC:\t\t" << (*cache).Assoc << '\n';
             }
             file << "REPLACEMENT POLICY:\t" + repPolicy << '\n';
             file << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
@@ -350,74 +315,40 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 
             if (showsets)
             {
-                file << "===== L1 contents =====\n";
-                for (int i = 0; i < l1.Sets(); i++)
-                {
-                    std::string line = "Set\t" + std::to_string(i) + ":\t";
-                    for (int j = 0; j < l1.Assoc; j++)
-                    {
-                        if (l1.Dirty[i][j])
-                        {
-                            line += l1.ToTag(i, j) + " D   ";
-                        }
-                        else
-                        {
-                            line += l1.ToTag(i, j) + "     ";
-                        }
-                    }
-                    file << line << '\n';
-                }
-                if (!l1Only)
-                {
-                    file << "===== L2 contents =====\n";
-                    for (int i = 0; i < l2.Sets(); i++)
+                for (Cache* cache : Caches) {
+                    file << "===== L" << (*cache).Level << " contents =====\n";
+                    for (int i = 0; i < (*cache).Sets(); ++i)
                     {
                         std::string line = "Set\t" + std::to_string(i) + ":\t";
-                        for (int j = 0; j < l2.Assoc; j++)
+                        for (int j = 0; j < (*cache).Assoc; ++j)
                         {
-                            if (l2.Dirty[i][j])
+                            if ((*cache).Dirty[i][j])
                             {
-                                line += l2.ToTag(i, j) + " D   ";
+                                line += (*cache).ToTag(i, j) + " D\t";
                             }
                             else
                             {
-                                line += l2.ToTag(i, j) + "     ";
+                                line += (*cache).ToTag(i, j) + "\t\t";
                             }
                         }
                         file << line << '\n';
                     }
                 }
             }
-        
-            file << "===== Simulation results(raw) =====\n";
-            file << "a. number of L1 reads:\t\t" << l1.reads << '\n';
-            file << "b. number of L1 read misses:\t" << l1.read_misses << '\n';
-            file << "c. number of L1 writes:\t\t" << l1.writes << '\n';
-            file << "d. number of L1 write misses:\t" << l1.write_misses << '\n';
-            file << "e. L1 miss rate:\t\t" << l1.MissRate() * 100 << "%\n";
-            file << "f. number of L1 writebacks:\t" << l1.write_backs << '\n';
 
-            if (!l1Only)
-            {
-                file << "g. number of L2 reads:\t" << l2.reads << '\n';
-                file << "h. number of L2 read misses:\t" << l2.read_misses << '\n';
-                file << "i. number of L2 writes:\t" << l2.writes << '\n';
-                file << "j. number of L2 write misses:\t" << l2.write_misses << '\n';
-                file << "k. L2 miss rate:\t" << l2.MissRate() * 100 << "%\n";
-                file << "l. number of L2 writebacks:\t" << l2.write_backs << '\n';
+            for (Cache* cache : Caches) {
+                file << 'L' << (*cache).Level << " Cache:\n";
+                file << "\tReads:\t\t\t" << (*cache).reads << '\n';
+                file << "\tRead misses:\t\t" << (*cache).read_misses << '\n';
+                file << "\tWrites:\t\t\t" << (*cache).writes << '\n';
+                file << "\tWrite misses:\t\t" << (*cache).write_misses << '\n';
+                file << "\tMiss rate:\t\t" << (*cache).MissRate() * 100 << "%\n";
+                file << "\tWritebacks:\t\t" << (*cache).write_backs << '\n';
+                file << "\tTotal memory traffic:\t" << (*cache).read_misses + (*cache).write_misses + (*cache).write_backs << std::endl;
             }
 
-            if (!l1Only)
-            {
-                file << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << '\n';
-            }
-            else
-            {
-                file << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << '\n';
-            }
             file.close();
             std::cout << "Exported Results to " + filename + '\n';
         }
     }
 }
-
