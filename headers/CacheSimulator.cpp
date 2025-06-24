@@ -1,7 +1,13 @@
 #include "CacheSimulator.h"
-#include <vector>
+#include <chrono>
+#include <fstream>
+#include <iostream>
 #include <random>
 #include <unordered_map>
+#include <vector>
+
+
+std::chrono::time_point<std::chrono::system_clock> begin, end;
 
 static unsigned int TriangularDistribution(const int a, const int b, const int c, std::default_random_engine* gen) {
     int x = (*gen)();
@@ -151,6 +157,8 @@ void CacheSimulator::Run(std::string trace)
             "Couldn't find trace files. Make sure .exe is in same directory as the folder 'traces'.");
     }
 
+    begin = std::chrono::system_clock::now();
+
     // Do OPT Pre-processing if needed
     if (Rep == 2)
     {
@@ -175,7 +183,6 @@ void CacheSimulator::Run(std::string trace)
     int count = 1;
     while (getline(source, line))
     {
-        // cout << "Reading Line " + to_string(count) << endl;
         if (line.substr(0, 1) == "r")
         {
             std::string Report = l1.Read(line.substr(2));
@@ -186,6 +193,8 @@ void CacheSimulator::Run(std::string trace)
         }
         ++count;
     }
+
+    end = std::chrono::system_clock::now();
 
     source.close();
 }
@@ -237,7 +246,21 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
     }();
     std::cout << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
 
-    std::cout << "Trace file:\t" + Trace << '\n';
+    std::cout << "Trace file:\t\t" + Trace << '\n';
+
+    time_t begin_t= std::chrono::system_clock::to_time_t(begin); 
+    time_t end_t = std::chrono::system_clock::to_time_t(end);
+
+    char str_begin[26];
+    ctime_s(str_begin, sizeof(str_begin), &begin_t);
+    std::cout << "Begun:\t\t\t" << str_begin;
+
+    char str_end[26];
+    ctime_s(str_end, sizeof(str_end), &end_t);
+    std::cout << "End:\t\t\t" << str_end;
+
+    std::cout << "Duration:\t\t" << (end - begin) / std::chrono::milliseconds(1) / 1000.0 << " seconds\n";
+
     if (showsets)
     {
         std::cout << "===== L1 contents =====\n";
@@ -298,11 +321,11 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
 
     if (!l1Only)
     {
-        std::cout << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << '\n';
+        std::cout << "m. total memory traffic:\t" << l2.read_misses + l2.write_misses + l2.write_backs << std::endl;
     }
     else
     {
-        std::cout << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << '\n';
+        std::cout << "g. total memory traffic:\t" << l1.read_misses + l1.write_misses + l1.write_backs << std::endl;
     }
 
     if (print) {
@@ -321,6 +344,10 @@ void CacheSimulator::Output(bool showsets, bool print, std::string filename)
             file << "INCLUSION PROPERTY:\t" + incPolicy << '\n';
 
             file << "Trace file:\t\t" + Trace << '\n';
+            file << "Begun:\t\t\t" << str_begin;
+            file << "End:\t\t\t" << str_end;
+            file << "Duration:\t\t" << (end - begin) / std::chrono::milliseconds(1) / 1000.0 << " seconds\n";
+
             if (showsets)
             {
                 file << "===== L1 contents =====\n";

@@ -1,26 +1,22 @@
 #include "CacheSimulator.h"
 
-#include <chrono>
-#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stack>
 #include <stdexcept>
 #include <string>
-#include <time.h>
 #include <tuple>
 #include <vector>
-using namespace std;
 
 int main()
 {
-    std::vector<string> inputs;
+    std::vector<std::string> inputs;
     bool looping = true;
     while (looping)
     {
-        string input;
-        getline(cin, input);
+        std::string input;
+        std::getline(std::cin, input);
         std::stringstream stream(input);
         while (getline(stream, input, ' ')) {
             inputs.push_back(input);
@@ -28,15 +24,15 @@ int main()
 
         if (inputs[0] == "h" || inputs[0] == "H")
         {
-            cout << "---COMMANDS----" << '\n';
-            cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:" << '\n';
-            cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: trace file> <string: output file>" << '\n';
-            cout << "\tAll sizes and associations must be powers of 2." << '\n';
-            cout << "\tSetting l2 cache variables to 0 disables using the l2 cache in simulation." << '\n';
-            cout << "\tOutput file will only be created if given a filename." << '\n';
-            cout << "gen: Generates a file to mimick a trace file:" << '\n';
-            cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << '\n';
-            cout << "end: Stops the program." << '\n';
+            std::cout << "---COMMANDS----" << '\n';
+            std::cout << "sim_cache: Launches the simulation with the following parameters. Put spaces between variables:" << '\n';
+            std::cout << "\t<int: blocksize> <int: l1 cache size> <int: l1 association> <int: l2 cache size> <int: l2 assocaition> <int: Replacement Policy Code> <int: Inclusion Property Code> <string: trace file> <string: output file>" << '\n';
+            std::cout << "\tAll sizes and associations must be powers of 2." << '\n';
+            std::cout << "\tSetting l2 cache variables to 0 disables using the l2 cache in simulation." << '\n';
+            std::cout << "\tOutput file will only be created if given a filename." << '\n';
+            std::cout << "gen: Generates a file to mimick a trace file:" << '\n';
+            std::cout << "\t<string: filename> <int: size> <float: % references to prior addresses> <float: % writes>" << '\n';
+            std::cout << "end: Stops the program." << std::endl;
         }
         else if (inputs[0] == "end")
         {
@@ -52,7 +48,7 @@ int main()
         }
         else if (inputs[0] == "")
         {
-            cout << "Please put in a command" << endl;
+            std::cout << "Please put in a command" << std::endl;
         }
         else if (inputs[0] == "test")
         {
@@ -62,7 +58,7 @@ int main()
             {
                 for (int size = 10; size < 21; size++)
                 {
-                    cout << "SIZE: " + to_string(pow(2, size)) + " ASSOC: " + to_string(assoc) << endl;
+                    std::cout << "SIZE: " << pow(2, size) << " ASSOC: " + assoc << std::endl;
                     CacheSimulator sim(32, pow(2, size), assoc, 0, 0, 0, 0);
                     sim.Run("gcc_trace.txt");
                     sim.Output(false);
@@ -71,7 +67,7 @@ int main()
             }
             for (int size = 10; size < 21; size++)
             {
-                cout << "SIZE: " + to_string(pow(2, size)) + " ASSOC: " + to_string(pow(2, size) / 32) << endl;
+                std::cout << "SIZE: " << pow(2, size) << " ASSOC: " << pow(2, size) / 32 << std::endl;
                 CacheSimulator sim(32, pow(2, size), pow(2, size) / 32, 0, 0, 0, 0);
                 sim.Run("gcc_trace.txt");
                 sim.Output(false);
@@ -89,11 +85,10 @@ int main()
                 sim.Output(false);
                 clock_t end = clock();
                 total_time += ((double)(end - start)) / CLOCKS_PER_SEC;
-                cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << endl;
+                std::cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << std::endl;
                 increment++;
             }
-            cout << "Total time: " << total_time << " seconds. Average time: " << total_time / increment
-                 << " seconds per test." << endl;
+            std::cout << "Total time: " << total_time << " seconds. Average time: " << total_time / increment << " seconds per test." << std::endl;
         }
         else if (inputs[0] == "sim_cache")
         {
@@ -108,26 +103,19 @@ int main()
 
             if (blocksize <= 0 || l1size <= 0 || l1assoc <= 0 || l2size < 0 || l2assoc < 0 || rep < 0 || inc < 0)
             {
-                cout << "All inputs must be a positive integer" << endl;
+                std::cout << "All inputs must be a positive integer" << std::endl;
                 continue;
             }
 
-            clock_t start = clock();
-
-            // Build simulator
             CacheSimulator sim(blocksize, l1size, l1assoc, l2size, l2assoc, rep, inc);
             sim.Run(inputs[8]);
+
             if (inputs.size() < 10) {
                 sim.Output(true, false);
             }
             else {
                 sim.Output(true, true, inputs[9]);
             }
-            
-
-            clock_t end = clock();
-
-            cout << "This was completed in " << ((double)(end - start)) / CLOCKS_PER_SEC << " seconds." << endl;
         }
 
         inputs.clear();
