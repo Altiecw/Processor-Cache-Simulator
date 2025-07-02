@@ -20,10 +20,10 @@
     <None Include=".gitattributes" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\Cache.h">
+    <ClInclude Include="include\Cache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\CacheSimulator.h">
+    <ClInclude Include="include\CacheSimulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,8 +34,11 @@
     <ClCompile Include="src\Cache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="headers\CacheSimulator.cpp">
+    <ClCompile Include="src\CacheSimulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Thinking.txt" />
   </ItemGroup>
 </Project>

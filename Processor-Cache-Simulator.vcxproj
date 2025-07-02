@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)/headers;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)/include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -135,13 +135,16 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\Cache.h" />
-    <ClInclude Include="headers\CacheSimulator.h" />
+    <ClInclude Include="include\Cache.h" />
+    <ClInclude Include="include\CacheSimulator.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="headers\CacheSimulator.cpp" />
+    <ClCompile Include="src\CacheSimulator.cpp" />
     <ClCompile Include="src\Cache.cpp" />
     <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Thinking.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

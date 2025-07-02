@@ -135,11 +135,11 @@ void CacheSimulator::GenerateTrace(std::string name, int size, int seed, float r
                 priors.push_back(address);
             }
             else {
-                address = priors[generator() % priors.size()];
+                address = priors[(priors.size() - 1) - TriangularDistribution(0, priors.size() - 1, 50, &generator)];
             }
         }
         else {
-            address = priors[generator() % priors.size()];
+            address = priors[(priors.size() - 1) - TriangularDistribution(0, priors.size() - 1, 50, &generator)];
         }
         file << rw << ' ' << std::hex << address << '\n';
     }
